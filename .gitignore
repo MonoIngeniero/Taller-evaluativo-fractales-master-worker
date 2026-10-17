@@ -2,7 +2,7 @@
 build/
 !gradle/wrapper/gradle-wrapper.jar
 output/
-*.png
+!docs/resultados/conexionB/*.png
 .idea/
 *.iml
 .vscode/
