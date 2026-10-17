@@ -23,17 +23,19 @@ public class WorkerMain {
     private final String masterHost;
     private final int masterPort;
     private final int threadsCount;
+    private final String workerHost;
 
     private Communicator communicator;
     private MasterServicePrx master;
     private ExecutorService executor;
 
-    public WorkerMain(String workerId, int workerPort, String masterHost, int masterPort, int threadsCount) {
+    public WorkerMain(String workerId, int workerPort, String masterHost, int masterPort, int threadsCount, String workerHost) {
         this.workerId = workerId;
         this.workerPort = workerPort;
         this.masterHost = masterHost;
         this.masterPort = masterPort;
         this.threadsCount = Math.max(1, threadsCount);
+        this.workerHost = workerHost;
     }
 
     public void start(String[] args) {
@@ -65,7 +67,7 @@ public class WorkerMain {
             }
 
             // 3. Registrarse en el Master pasando el proxy con endpoint explicito
-            String observerEndpoint = String.format("WorkerObserver:tcp -h 127.0.0.1 -p %d", workerPort);
+            String observerEndpoint = String.format("WorkerObserver:tcp -h %s -p %d", workerHost, workerPort);
             WorkerObserverPrx observer = WorkerObserverPrx.checkedCast(communicator.stringToProxy(observerEndpoint));
             master.registerWorker(workerId, observer);
 
@@ -159,8 +161,9 @@ public class WorkerMain {
         String masterHost = (args.length >= 3) ? args[2] : "localhost";
         int masterPort = (args.length >= 4) ? Integer.parseInt(args[3]) : 10000;
         int threads = (args.length >= 5) ? Integer.parseInt(args[4]) : Runtime.getRuntime().availableProcessors();
+        String workerHost = (args.length >= 6) ? args[5] : "127.0.0.1";
 
-        WorkerMain worker = new WorkerMain(workerId, workerPort, masterHost, masterPort, threads);
+        WorkerMain worker = new WorkerMain(workerId, workerPort, masterHost, masterPort, threads, workerHost);
         worker.start(args);
     }
 }
