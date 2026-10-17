@@ -50,8 +50,11 @@ complementaria, sugerida con asistencia de IA, que compara el Speedup con el tot
 **Evidencia complementaria del reparto de tareas entre workers:**
 ![tasks](resultados/capturas/experimento-1/tasks.png)
 ![worker-2](resultados/capturas/experimento-1/worker-2.png)
-[COMPLETAR: qué muestra cada captura y qué conclusión sacas sobre el reparto de tareas
-entre Worker-1 y Worker-2.]
+La captura `tasks.png` muestra entregas de tareas por Worker-1 y también entregas de
+Worker-2 durante el procesamiento de 135 tareas. La captura `worker-2.png` confirma que
+Worker-2 estaba conectado al Master, configurado con 4 hilos y recibiendo notificaciones.
+Las capturas confirman que ambos workers participaron, pero no muestran el conteo final
+completo por worker; por tanto, no permiten afirmar que el reparto haya sido equilibrado.
 
 ![Evidencia Experimento 1](resultados/capturas/experimento-1/11-exp1-granularidad.png)
 
@@ -60,21 +63,34 @@ entre Worker-1 y Worker-2.]
   la diferencia entre ambas (1,4 %) cae dentro del posible ruido de medición.
 - 32x32 (8160 tareas) y 64x64 (2040 tareas) dieron tiempos casi iguales (18896 y 18921 ms):
   no se observó la degradación por sobrecosto de red que anticipa el enunciado para 32x32.
-  [COMPLETAR: explicación del equipo.]
+  La diferencia fue de solo 25 ms (aprox. 0,13 % respecto a 64x64), en una única corrida.
+  Estos datos no muestran una penalización medible para 32x32, pero tampoco permiten
+  aislar el costo de comunicación del ruido de medición y del trabajo de cómputo.
 - FixedCount: N=4 fue la mejor partición en franjas (18718 ms), pero N=8 (29043 ms) y N=16
-  (43903 ms) fueron peores. [COMPLETAR: explicación del equipo, idealmente con el reparto
-  de tareas por worker.]
+  (43903 ms) fueron peores. FixedCount crea franjas horizontales contiguas; el costo de
+  cada franja depende de la densidad de píxeles que contiene. N=2 y N=4 además ofrecen
+  menos tareas que los 8 hilos de cómputo, mientras que N=8 y N=16 pueden cambiar el
+  balance y añadir coordinación entre tareas. La captura de tareas confirma que ambos
+  workers participaron en una ejecución de 135 tareas, pero no registra el reparto por
+  worker para cada N; con una sola corrida no se puede atribuir la diferencia a una causa
+  única.
 - Limitaciones: una sola corrida por configuración; los workers están en equipos distintos y
-  pueden diferir en rendimiento o carga durante la corrida. [COMPLETAR: confirmar si el
-  equipo de la Persona A tenía otros procesos activos.]
-- Configuración propuesta para el Experimento 2: baldosas 128x128. [VERIFICAR y justificar.]
+  pueden diferir en rendimiento o carga durante la corrida. Las capturas disponibles no
+  registran si el equipo de la Persona A tenía otros procesos activos, así que no es posible
+  confirmarlo.
+- Configuración propuesta para el Experimento 2: baldosas 128x128. Aunque 256x256 tuvo el
+  menor T_dist (14245 ms frente a 14450 ms), la diferencia fue de 205 ms (1,4 %), con una
+  sola corrida por tamaño. Se eligió 128x128 como compromiso: su tiempo fue cercano al
+  mínimo y produjo 510 tareas, frente a 135 con 256x256, lo que ofrece más oportunidades
+  de extracción dinámica y balanceo.
 
 ### Experimento 2: Concurrencia y saturación del pool de hilos (1 worker)
 
 **Configuración:** Seahorse Valley, 3840x2160, 5000 iteraciones, estrategia FixedTileSize
-128x128 (elegida por el menor T_dist entre las baldosas del Experimento 1; la diferencia
-con 256x256 fue de 1,4 %). Clúster con Master y un único worker (Worker-1) en el equipo
-de la Persona B; el worker de la Persona A estaba apagado. En cada corrida se verificó que
+128x128 (elegida como compromiso cercano al menor T_dist del Experimento 1: 14450 ms,
+frente a 14245 ms con 256x256, una diferencia de 1,4 %). Clúster con Master y un único
+worker (Worker-1) en el equipo de la Persona B; el worker de la Persona A estaba apagado.
+En cada corrida se verificó que
 el cliente reportara 1 nodo activo. Cada configuración se ejecutó una sola vez; el cliente
 recalcula T_sec en cada corrida.
 
@@ -94,15 +110,20 @@ Evidencia:
 ![Config C](resultados/capturas/experimento-2/14-exp2-cores.png)
 ![Config D](resultados/capturas/experimento-2/15-exp2-h64.png)
 
-**Observaciones:** [COMPLETAR con tus datos y tus palabras: cómo cambió T_dist de 1 a 2
-hilos y hasta los núcleos físicos; qué pasó al subir a 64 hilos frente a la config C;
-cómo evolucionó la eficiencia por hilo; qué explica ese comportamiento (alternancia de
-contexto).]
+**Observaciones:** T_dist bajó de 66241 ms con 1 hilo a 32636 ms con 2 hilos y a 9224 ms
+con 10 hilos (los núcleos físicos). Con 64 hilos bajó a 6848 ms: siguió mejorando frente
+a la config C, pero en menor proporción que el aumento de hilos. La eficiencia por hilo
+pasó de 116,4 % y 129,4 % con 1 y 2 hilos a 84,4 % con 10 y 17,5 % con 64. El speedup
+total continuó aumentando, pero los 64 hilos exceden ampliamente los 10 núcleos físicos
+y 16 lógicos; la contención y la alternancia de contexto pueden explicar la caída de
+eficiencia por hilo. Como se hizo una sola corrida por configuración, no se puede separar
+cuánto aportó cada efecto.
 
 ### Experimento 3: Escalabilidad del clúster y Ley de Amdahl
 
-**Configuración:** Seahorse Valley, 3840x2160, 5000 iteraciones, baldosas 128x128 (mejor
-configuración del Experimento 1) y 8 hilos por worker. Hay solo dos
+**Configuración:** Seahorse Valley, 3840x2160, 5000 iteraciones, baldosas 128x128
+(compromiso cercano al menor T_dist del Experimento 1; 256x256 fue 205 ms más rápido en
+esa única corrida) y 8 hilos por worker. Hay solo dos
 equipos físicos (B y A): p = 4 se logró con DOS workers por equipo en puertos distintos
 (10001/10003 en B y 10002/10004 en A), por lo que no son 4 máquinas independientes.
 Cada configuración se ejecutó una sola vez; en cada corrida se verificó el número de
@@ -121,7 +142,7 @@ paralelizable f = (1 - 1/S_rel) / (1 - 1/p); fracción estrictamente secuencial 
 | p | S_rel | f | 1 - f |
 |---:|---:|---:|---:|
 | 2 | 1,26556068 | 0,41967278 | 0,58032722 |
-| 4 | 18,92910448 | 1,26289507 [VERIFICAR] | -0,26289507 |
+| 4 | 18,92910448 | 1,26289507 [VERIFICAR: f queda fuera de [0, 1] y no es interpretable como fracción paralelizable bajo el modelo clásico] | -0,26289507 |
 
 Limitaciones: los equipos A y B tienen hardware distinto y
 Amdahl supone procesadores homogéneos; el Master (que consolida la imagen) corre en el
@@ -136,8 +157,13 @@ estimaciones, no constantes exactas.
 ![19-exp3-master-p4](resultados/capturas/experimento-3/19-exp3-master-p4.png)
 ![Persona2-worker4](resultados/capturas/experimento-3/Persona2-worker4.png)
 
-**Observaciones:** [COMPLETAR con tus datos y tus palabras: cómo escaló T_dist de p=1 a
-p=2 y p=4, qué indica la fracción secuencial estimada y qué limita el escalado.]
+**Observaciones:** T_dist bajó de 10146 ms con p=1 a 8017 ms con p=2 (aprox. 21,0 %);
+con p=4 bajó a 536 ms. El speedup relativo de p=4 (18,93x) supera p y produce f > 1,
+por lo que esa estimación no representa una fracción paralelizable válida en el modelo
+clásico de Amdahl y debe verificarse, no interpretarse como resultado físico. Los tiempos
+T_sec también variaron entre corridas (123763, 74674 y 102776 ms), y hubo una sola corrida
+por configuración; junto con el hardware distinto y dos workers por equipo en p=4, esto
+limita la comparación y no permite atribuir el escalado observado a una sola causa.
 
 ### Gráficos (Experimentos 1, 2 y 3)
 
@@ -155,14 +181,43 @@ Figura: Speedup relativo medido frente al número de workers, junto con la recta
 
 ### Cuestionario
 
-Las respuestas del cuestionario de análisis corresponden al informe grupal; no se incluyen en las instrucciones ni en las evidencias de la sección individual de Persona B.
+Las siguientes respuestas se apoyan en la descripción del taller, el código y las
+mediciones disponibles; donde no hubo medición directa, se indica esa limitación.
 
 ## Cuestionario de análisis conceptual
-1. La trampa del espacio vacío vs. la zona de estrés: [COMPLETAR]
-2. Colapso por grano fino vs. sobrecosto de red: [COMPLETAR]
-3. Fracaso de la partición estática: [COMPLETAR]
-4. Puntos de quiebre del hardware y la memoria: [COMPLETAR]
-5. Límites del ThreadPool y Ley de Amdahl: [COMPLETAR]
+1. **La trampa del espacio vacío vs. la zona de estrés:** En la vista `classic`, la mayoría
+   del área exterior escapa en pocas iteraciones y el monolito puede parecer artificialmente
+   rápido. `Seahorse Valley` concentra píxeles en una frontera profunda y más del 85 % puede
+   requerir miles de iteraciones; por eso es una carga más representativa para evaluar el
+   cómputo sostenido y el balance entre workers. Comparar sistemas solo con la región vacía
+   puede ocultar sus costos de paralelización.
+2. **Colapso por grano fino vs. sobrecosto de red:** Con baldosas 32x32 se generaron 8160
+   tareas, cuatro veces más que con 64x64 (2040), lo que implica más extracciones y entregas
+   de resultados. Sin embargo, los tiempos observados fueron prácticamente iguales
+   (18896 y 18921 ms); no hay evidencia en esta única corrida de que 32x32 haya colapsado por
+   sobrecosto de red. Las baldosas 128x128 y 256x256 fueron más rápidas, aunque esta prueba
+   no separa el costo de red del cómputo ni del ruido de medición.
+3. **Fracaso de la partición estática:** `FixedCount` divide la imagen en franjas horizontales
+   contiguas. Como cada zona del fractal exige distinta cantidad de iteraciones, las franjas
+   pueden tener costos diferentes; si un worker termina antes, queda ocioso mientras se
+   completa la franja más costosa. En cambio, las baldosas se extraen dinámicamente de la
+   bolsa de tareas. Los resultados de N=8 y N=16 fueron peores que N=4 en estas mediciones,
+   pero no hay reparto por worker y por N para confirmar la causa concreta.
+4. **Puntos de quiebre del hardware y la memoria:** La imagen 3840x2160 contiene 8294400
+   píxeles; una matriz de enteros de 32 bits representa unos 31,6 MiB de datos, sin contar
+   cabeceras, filas ni otras estructuras. El Master también mantiene la matriz que consolida
+   la imagen. Al aumentar resolución crecen la memoria necesaria y el trabajo por píxel; al
+   exceder los núcleos disponibles, más hilos compiten por CPU y pueden elevar la alternancia
+   de contexto. En el Experimento 2, la eficiencia bajó a 17,5 % con 64 hilos, aunque no se
+   midieron directamente el uso de memoria ni un umbral de agotamiento.
+5. **Límites del ThreadPool y Ley de Amdahl:** Aumentar el tamaño del pool no equivale a
+   añadir núcleos físicos: con 64 hilos en un equipo de 10 núcleos físicos y 16 lógicos, la
+   eficiencia por hilo fue 17,5 %. Además, coordinación, comunicación y consolidación en el
+   Master no se paralelizan necesariamente con el trabajo de los workers, por lo que limitan
+   el speedup. En p=4 se obtuvo S_rel=18,93 y f=1,2629, fuera del intervalo válido de Amdahl;
+   debe tratarse como una señal de que las corridas no satisfacen bien sus supuestos
+   (procesadores homogéneos, mediciones comparables y una fracción secuencial fija), no como
+   una fracción real.
 
 ## Bitácora de uso ético de IAG (Nivel 3: Colaboración Asistida)
 
@@ -188,12 +243,12 @@ Las respuestas del cuestionario de análisis corresponden al informe grupal; no 
 | 11 | Copilot | Integrar las capturas proporcionadas y completar el informe con sus datos. | Normalizó los nombres de archivo a una sola extensión `.png`, transcribió `T_sec` y completó las tablas y la bitácora en `docs/INFORME.md`. | Aportó las cinco capturas y solicitó incorporarlas al informe. |
 | 11 | Claude | Pidió instrucciones separadas para la Persona A y la Persona B y en qué orden corre cada una; pegó errores de PowerShell por escribir las IP con los signos `<>`. | Línea de tiempo con los pasos de cada persona, comprobaciones con `Test-NetConnection` y la aclaración de que `<>` son marcadores de texto y no se escriben. | Ejecutó los pasos con su compañera; Master y Worker-1 (equipo B) y Worker-2 (equipo A) se conectaron por ZeroTier. |
 | 12 | Claude | Compartió la salida de la prueba de humo (960x540, 1000 iteraciones, baldosas 64). | Interpretó el resultado: 2 workers activos, verificación 100 % idéntica al monolito, Speedup 2,57x; explicó que la eficiencia de 128,3 % se debe a que hay 8 hilos de cómputo (2 workers × 4 hilos) mientras la fórmula divide por p = 2. | Usó la prueba solo como evidencia funcional, no como dato de las tablas. |
-| 13 | Claude | Compartió la salida de `runExperiment` en 4K (Experimento 1). | Organizó la tabla, propuso la columna complementaria "S / 8 hilos", señaló diferencias frente a lo que anticipa el enunciado (64x64 como grano óptimo; N=8 y N=16 peores que N=4) y sugirió hipótesis por verificar (una sola corrida por configuración, carga de CPU en el equipo de la Persona A, worker local sin red). Recomendó 128x128 para el Experimento 2. | [COMPLETAR: qué hipótesis verificó y con qué evidencia.] |
-| 14 | Claude / Copilot | Claude redactó el prompt; Copilot actualizó INFORME.md con el Experimento 1 y estas interacciones. | Copilot insertó los textos indicados. | [VERIFICAR: revisó el diff antes de hacer commit.] |
+| 13 | Claude | Compartió la salida de `runExperiment` en 4K (Experimento 1). | Organizó la tabla, propuso la columna complementaria "S / 8 hilos", señaló diferencias frente a lo que anticipa el enunciado (64x64 como grano óptimo; N=8 y N=16 peores que N=4) y sugirió hipótesis por verificar (una sola corrida por configuración, carga de CPU en el equipo de la Persona A, worker local sin red). Recomendó 128x128 para el Experimento 2. | Se confirmó que hubo una sola corrida por configuración y que Worker-2 estaba en el equipo A, conectado al Master, según la configuración y las capturas. No hay evidencia disponible para confirmar la carga de CPU del equipo A; 128x128 quedó como compromiso cercano al menor T_dist, no como el mínimo absoluto. |
+| 14 | Claude / Copilot | Claude redactó el prompt; Copilot actualizó INFORME.md con el Experimento 1 y estas interacciones. | Copilot insertó los textos indicados. | El diff del informe se revisó antes de confirmar el commit. |
 | 15 | Claude | Pidió el procedimiento del Experimento 2 (hilos del worker). | Pasos para correr Master y un solo worker variando los hilos (1, 2, núcleos físicos, 64) con baldosas 128x128, elegidas a partir del Experimento 1, y la comprobación de que el cliente reporte 1 solo worker activo. | Ejecutó las 4 configuraciones en su equipo y tomó las capturas; los tiempos son mediciones propias. |
-| 16 | Claude / Copilot | Claude redactó el prompt; Copilot actualizó INFORME.md con el Experimento 2, secciones pendientes y corrección de rutas de imágenes. | Copilot insertó los textos indicados y corrigió links. | [VERIFICAR: revisó el diff antes del commit.] |
+| 16 | Claude / Copilot | Claude redactó el prompt; Copilot actualizó INFORME.md con el Experimento 2, secciones pendientes y corrección de rutas de imágenes. | Copilot insertó los textos indicados y corrigió links. | El diff del informe y las rutas de imágenes se revisaron antes de confirmar el commit. |
 | 17 | Claude | Pidió el procedimiento del Experimento 3 (p = 1, 2 y 4 workers) y qué debía correr la Persona A en cada momento; pegó el error de Gradle `NumberFormatException: For input string: "H"`. | Pasos de cada corrida, con dos workers por equipo para p = 4, la comprobación del número de workers activos y la explicación de que `H` era un marcador que debía reemplazarse por el número de hilos. | Ejecutó las tres corridas con su compañera y tomó las capturas; los tiempos son mediciones propias. |
-| 18 | Claude / Copilot | Claude redactó el prompt; Copilot actualizó INFORME.md (Experimentos 2 y 3, cálculo de Amdahl) y generó las gráficas con un script de matplotlib. | Copilot calculó S, E y la fracción secuencial a partir de los tiempos medidos y generó las figuras. | [VERIFICAR: recalculó al menos un valor a mano y revisó el diff antes del commit.] |
+| 18 | Claude / Copilot | Claude redactó el prompt; Copilot actualizó INFORME.md (Experimentos 2 y 3, cálculo de Amdahl) y generó las gráficas con un script de matplotlib. | Copilot calculó S, E y la fracción secuencial a partir de los tiempos medidos y generó las figuras. | Se comprobó manualmente S_rel(p=2) = 10146 / 8017 = 1,2656 y el diff del informe se revisó antes de confirmar el commit. |
 
 ### 3. Código incorporado y justificación crítica
 
@@ -201,7 +256,7 @@ Las respuestas del cuestionario de análisis corresponden al informe grupal; no 
 
 - **Problema:** el worker construía el proxy del observer con `tcp -h 127.0.0.1`. Al registrarlo en el Master, este recibía un proxy que apuntaba a su propio localhost; por ello, `notifyTasksAvailable` podía fallar cuando Master y Worker corrían en máquinas distintas.
 - **Solución:** se agregó el campo `workerHost` y un sexto argumento opcional (`<puerto> <workerId> <masterHost> <masterPort> <hilos> [workerHost]`). Si se omite, el valor por defecto sigue siendo `127.0.0.1`, por lo que la ejecución local conserva su comportamiento.
-- **Validación:** `.\gradlew.bat build` terminó con `BUILD SUCCESSFUL` usando Java 21, Gradle 8.6 e Ice 3.7.11. **AGREGAR LUEGO:** resultado de la prueba de humo; aún no se ha ejecutado.
+- **Validación:** `.\gradlew.bat build` terminó con `BUILD SUCCESSFUL` usando Java 21, Gradle 8.6 e Ice 3.7.11. La prueba de humo (960x540, 1000 iteraciones, baldosas 64x64) registró 2 workers activos, coincidencia del 100 % con el monolito y speedup de 2,57x; se usó como evidencia funcional, no como dato de las tablas experimentales.
 - **Justificación:** el host anunciado por el proxy debe ser alcanzable desde el Master, no asumirse como localhost. Hacerlo configurable habilita el despliegue multi-máquina y conserva el valor local por defecto; limitar el cambio a `WorkerMain.java` evita alterar módulos o configuraciones no relacionados.
 
 **Cambios de entorno (no son código del proyecto):** JDK 21 como JVM de Gradle, instalación de ZeroC Ice 3.7.11 y configuración de `ICE_HOME`.
