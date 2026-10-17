@@ -47,7 +47,13 @@ Nota: "E (taller)" es S / p con p = 2 workers; supera el 100 % porque cada worke
 y el monolito usa 1 (8 hilos de cómputo en total). "S / 8 hilos" es una métrica
 complementaria, sugerida con asistencia de IA, que compara el Speedup con el total de hilos.
 
-![Evidencia Experimento 1](resultados/persona-b/capturas/11-exp1-granularidad.png)
+**Evidencia complementaria del reparto de tareas entre workers:**
+![tasks](resultados/capturas/experimento-1/tasks.png)
+![worker-2](resultados/capturas/experimento-1/worker-2.png)
+[COMPLETAR: qué muestra cada captura y qué conclusión sacas sobre el reparto de tareas
+entre Worker-1 y Worker-2.]
+
+![Evidencia Experimento 1](resultados/capturas/experimento-1/11-exp1-granularidad.png)
 
 **Observaciones preliminares (por verificar con datos adicionales):**
 - Mejores tiempos: baldosas 256x256 (14245 ms, S = 4,53x) y 128x128 (14450 ms, S = 4,46x);
@@ -63,13 +69,58 @@ complementaria, sugerida con asistencia de IA, que compara el Speedup con el tot
   equipo de la Persona A tenía otros procesos activos.]
 - Configuración propuesta para el Experimento 2: baldosas 128x128. [VERIFICAR y justificar.]
 
+### Experimento 2: Concurrencia y saturación del pool de hilos (1 worker)
+
+**Configuración:** Seahorse Valley, 3840x2160, 5000 iteraciones, estrategia FixedTileSize
+128x128 (elegida por el menor T_dist entre las baldosas del Experimento 1; la diferencia
+con 256x256 fue de 1,4 %). Clúster con Master y un único worker (Worker-1) en el equipo
+de la Persona B; el worker de la Persona A estaba apagado. En cada corrida se verificó que
+el cliente reportara 1 nodo activo. Cada configuración se ejecutó una sola vez; el cliente
+recalcula T_sec en cada corrida.
+
+| Config | Hilos | T_sec (ms) | T_dist (ms) | S = T_sec / T_dist | E = S / hilos |
+|---|---|---|---|---|---|
+| A | 1 | [COMPLETAR] | [COMPLETAR] | [COMPLETAR] | [COMPLETAR] |
+| B | 2 | [COMPLETAR] | [COMPLETAR] | [COMPLETAR] | [COMPLETAR] |
+| C (núcleos físicos) | [COMPLETAR n] | [COMPLETAR] | [COMPLETAR] | [COMPLETAR] | [COMPLETAR] |
+| D | 64 | [COMPLETAR] | [COMPLETAR] | [COMPLETAR] | [COMPLETAR] |
+
+Nota: la eficiencia se calcula como S dividido entre los hilos del único worker, no con el
+cálculo de eficiencia que imprime el cliente (que divide por el número de workers).
+
+Evidencia:
+![Config A](resultados/capturas/experimento-2/12-exp2-h1.png)
+![Config B](resultados/capturas/experimento-2/13-exp2-h2.png)
+![Config C](resultados/capturas/experimento-2/14-exp2-cores.png)
+![Config D](resultados/capturas/experimento-2/15-exp2-h64.png)
+
+**Observaciones:** [COMPLETAR con tus datos y tus palabras: cómo cambió T_dist de 1 a 2
+hilos y hasta los núcleos físicos; qué pasó al subir a 64 hilos frente a la config C;
+cómo evolucionó la eficiencia por hilo; qué explica ese comportamiento (alternancia de
+contexto).]
+
+### Experimento 3: Escalabilidad del clúster y Ley de Amdahl
+[PENDIENTE: p = 1, 2 y 4 workers con la mejor configuración. Con dos equipos, p = 4 implica
+dos workers por equipo en puertos distintos; documentar el reparto de hilos.]
+
 ### Gráficos (Experimentos 1, 2 y 3)
 
 Este bloque contiene los resultados individuales de Persona B. Los gráficos comparativos de los experimentos grupales 1, 2 y 3 no forman parte de las evidencias recibidas para esta sección.
 
+### Gráficas
+[PENDIENTE: gráfica de Speedup vs tamaño de baldosa (datos del Experimento 1) y de Speedup
+vs número de hilos (datos del Experimento 2).]
+
 ### Cuestionario
 
 Las respuestas del cuestionario de análisis corresponden al informe grupal; no se incluyen en las instrucciones ni en las evidencias de la sección individual de Persona B.
+
+## Cuestionario de análisis conceptual
+1. La trampa del espacio vacío vs. la zona de estrés: [COMPLETAR]
+2. Colapso por grano fino vs. sobrecosto de red: [COMPLETAR]
+3. Fracaso de la partición estática: [COMPLETAR]
+4. Puntos de quiebre del hardware y la memoria: [COMPLETAR]
+5. Límites del ThreadPool y Ley de Amdahl: [COMPLETAR]
 
 ## Bitácora de uso ético de IAG (Nivel 3: Colaboración Asistida)
 
@@ -97,6 +148,8 @@ Las respuestas del cuestionario de análisis corresponden al informe grupal; no 
 | 12 | Claude | Compartió la salida de la prueba de humo (960x540, 1000 iteraciones, baldosas 64). | Interpretó el resultado: 2 workers activos, verificación 100 % idéntica al monolito, Speedup 2,57x; explicó que la eficiencia de 128,3 % se debe a que hay 8 hilos de cómputo (2 workers × 4 hilos) mientras la fórmula divide por p = 2. | Usó la prueba solo como evidencia funcional, no como dato de las tablas. |
 | 13 | Claude | Compartió la salida de `runExperiment` en 4K (Experimento 1). | Organizó la tabla, propuso la columna complementaria "S / 8 hilos", señaló diferencias frente a lo que anticipa el enunciado (64x64 como grano óptimo; N=8 y N=16 peores que N=4) y sugirió hipótesis por verificar (una sola corrida por configuración, carga de CPU en el equipo de la Persona A, worker local sin red). Recomendó 128x128 para el Experimento 2. | [COMPLETAR: qué hipótesis verificó y con qué evidencia.] |
 | 14 | Claude / Copilot | Claude redactó el prompt; Copilot actualizó INFORME.md con el Experimento 1 y estas interacciones. | Copilot insertó los textos indicados. | [VERIFICAR: revisó el diff antes de hacer commit.] |
+| 15 | Claude | Pidió el procedimiento del Experimento 2 (hilos del worker). | Pasos para correr Master y un solo worker variando los hilos (1, 2, núcleos físicos, 64) con baldosas 128x128, elegidas a partir del Experimento 1, y la comprobación de que el cliente reporte 1 solo worker activo. | Ejecutó las 4 configuraciones en su equipo y tomó las capturas; los tiempos son mediciones propias. |
+| 16 | Claude / Copilot | Claude redactó el prompt; Copilot actualizó INFORME.md con el Experimento 2, secciones pendientes y corrección de rutas de imágenes. | Copilot insertó los textos indicados y corrigió links. | [VERIFICAR: revisó el diff antes del commit.] |
 
 ### 3. Código incorporado y justificación crítica
 
