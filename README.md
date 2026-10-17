@@ -1,3 +1,7 @@
+-Ivan Quintero A00406783
+-Veronica Flor A00411667
+
+
 # Taller Evaluativo: Renderizado Distribuido de Fractales (Patrón Master-Worker)
 
 **Asignatura:** Computación en Internet I (`09810 - TIC`)  
