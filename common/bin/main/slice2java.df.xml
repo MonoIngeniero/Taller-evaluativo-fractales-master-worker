@@ -1,0 +1,20 @@
+<state>
+  <timestamp value='1792217632056' />
+  <sourceSet name='default'>
+    <source name='C:\Users\nansa\OneDrive\Escritorio\Taller-evaluativo-fractales-master-worker\common\src\main\slice\FractalCompute.ice'>
+      <file name='C:\Users\nansa\OneDrive\Escritorio\Taller-evaluativo-fractales-master-worker\common\build\generated-src\FractalApp\RenderConfig.java' />
+      <file name='C:\Users\nansa\OneDrive\Escritorio\Taller-evaluativo-fractales-master-worker\common\build\generated-src\FractalApp\TaskTile.java' />
+      <file name='C:\Users\nansa\OneDrive\Escritorio\Taller-evaluativo-fractales-master-worker\common\build\generated-src\FractalApp\TileResult.java' />
+      <file name='C:\Users\nansa\OneDrive\Escritorio\Taller-evaluativo-fractales-master-worker\common\build\generated-src\FractalApp\FractalException.java' />
+      <file name='C:\Users\nansa\OneDrive\Escritorio\Taller-evaluativo-fractales-master-worker\common\build\generated-src\FractalApp\WorkerObserver.java' />
+      <file name='C:\Users\nansa\OneDrive\Escritorio\Taller-evaluativo-fractales-master-worker\common\build\generated-src\FractalApp\MasterService.java' />
+      <file name='C:\Users\nansa\OneDrive\Escritorio\Taller-evaluativo-fractales-master-worker\common\build\generated-src\FractalApp\IterationMatrixHelper.java' />
+      <file name='C:\Users\nansa\OneDrive\Escritorio\Taller-evaluativo-fractales-master-worker\common\build\generated-src\FractalApp\WorkerObserverPrx.java' />
+      <file name='C:\Users\nansa\OneDrive\Escritorio\Taller-evaluativo-fractales-master-worker\common\build\generated-src\FractalApp\_WorkerObserverPrxI.java' />
+      <file name='C:\Users\nansa\OneDrive\Escritorio\Taller-evaluativo-fractales-master-worker\common\build\generated-src\FractalApp\MasterServicePrx.java' />
+      <file name='C:\Users\nansa\OneDrive\Escritorio\Taller-evaluativo-fractales-master-worker\common\build\generated-src\FractalApp\_MasterServicePrxI.java' />
+    </source>
+    <arg value='C:\Program Files\ZeroC\Ice-3.7.11\\bin\slice2java.exe' />
+    <arg value='-IC:\Program Files\ZeroC\Ice-3.7.11\\slice' />
+  </sourceSet>
+</state>

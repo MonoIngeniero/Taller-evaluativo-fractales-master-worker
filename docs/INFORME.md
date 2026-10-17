@@ -80,10 +80,10 @@ recalcula T_sec en cada corrida.
 
 | Config | Hilos | T_sec (ms) | T_dist (ms) | S = T_sec / T_dist | E = S / hilos |
 |---|---|---|---|---|---|
-| A | 1 | [COMPLETAR] | [COMPLETAR] | [COMPLETAR] | [COMPLETAR] |
-| B | 2 | [COMPLETAR] | [COMPLETAR] | [COMPLETAR] | [COMPLETAR] |
-| C (núcleos físicos) | [COMPLETAR n] | [COMPLETAR] | [COMPLETAR] | [COMPLETAR] | [COMPLETAR] |
-| D | 64 | [COMPLETAR] | [COMPLETAR] | [COMPLETAR] | [COMPLETAR] |
+| A | 1 | 77092 | 66241 | 1,16x | 116,4% |
+| B | 2 | 84453 | 32636 | 2,59x | 129,4% |
+| C (núcleos físicos) | 10 | 77850 | 9224 | 8,44x | 84,4% |
+| D | 64 | 76588 | 6848 | 11,18x | 17,5% |
 
 Nota: la eficiencia se calcula como S dividido entre los hilos del único worker, no con el
 cálculo de eficiencia que imprime el cliente (que divide por el número de workers).
@@ -100,16 +100,58 @@ cómo evolucionó la eficiencia por hilo; qué explica ese comportamiento (alter
 contexto).]
 
 ### Experimento 3: Escalabilidad del clúster y Ley de Amdahl
-[PENDIENTE: p = 1, 2 y 4 workers con la mejor configuración. Con dos equipos, p = 4 implica
-dos workers por equipo en puertos distintos; documentar el reparto de hilos.]
+
+**Configuración:** Seahorse Valley, 3840x2160, 5000 iteraciones, baldosas 128x128 (mejor
+configuración del Experimento 1) y 8 hilos por worker. Hay solo dos
+equipos físicos (B y A): p = 4 se logró con DOS workers por equipo en puertos distintos
+(10001/10003 en B y 10002/10004 en A), por lo que no son 4 máquinas independientes.
+Cada configuración se ejecutó una sola vez; en cada corrida se verificó el número de
+workers activos reportado por el cliente.
+
+| Workers (p) | Distribución | Workers activos | T_sec (ms) | T_dist (ms) | S_rel = T_dist(1) / T_dist(p) | E_rel = S_rel / p |
+|---|---|---:|---:|---:|---:|---:|
+| 1 | Worker-1 en equipo B | 1 | 123763 | 10146 | 1,00x | 100,0% |
+| 2 | Worker-1 en B, Worker-2 en A | 2 | 74674 | 8017 | 1,27x | 63,3% |
+| 4 | Workers 1 y 3 en B, Workers 2 y 4 en A | 4 | 102776 | 536 | 18,93x | 473,2% |
+
+**Estimación de la fracción secuencial (Ley de Amdahl):**
+Tomando p = 1 como base, para cada p > 1: S_rel(p) = T_dist(1) / T_dist(p) y la fracción
+paralelizable f = (1 - 1/S_rel) / (1 - 1/p); fracción estrictamente secuencial = 1 - f.
+
+| p | S_rel | f | 1 - f |
+|---:|---:|---:|---:|
+| 2 | 1,26556068 | 0,41967278 | 0,58032722 |
+| 4 | 18,92910448 | 1,26289507 [VERIFICAR] | -0,26289507 |
+
+Limitaciones: los equipos A y B tienen hardware distinto y
+Amdahl supone procesadores homogéneos; el Master (que consolida la imagen) corre en el
+equipo B compitiendo por CPU con sus workers; con p = 4 hay dos workers por equipo
+compartiendo núcleos; cada configuración se midió una sola vez. Los valores de f son
+estimaciones, no constantes exactas.
+
+**Evidencia:**
+![16-exp3-p1](resultados/capturas/experimento-3/16-exp3-p1.png)
+![17-exp3-p2](resultados/capturas/experimento-3/17-exp3-p2.png)
+![18-exp3-p4](resultados/capturas/experimento-3/18-exp3-p4.png.png)
+![19-exp3-master-p4](resultados/capturas/experimento-3/19-exp3-master-p4.png)
+![Persona2-worker4](resultados/capturas/experimento-3/Persona2-worker4.png)
+
+**Observaciones:** [COMPLETAR con tus datos y tus palabras: cómo escaló T_dist de p=1 a
+p=2 y p=4, qué indica la fracción secuencial estimada y qué limita el escalado.]
 
 ### Gráficos (Experimentos 1, 2 y 3)
 
 Este bloque contiene los resultados individuales de Persona B. Los gráficos comparativos de los experimentos grupales 1, 2 y 3 no forman parte de las evidencias recibidas para esta sección.
 
 ### Gráficas
-[PENDIENTE: gráfica de Speedup vs tamaño de baldosa (datos del Experimento 1) y de Speedup
-vs número de hilos (datos del Experimento 2).]
+![Speedup vs tamaño de baldosa](resultados/graficas/speedup_vs_baldosa.png)
+Figura: Speedup frente a los tamaños de baldosa y a los parámetros de FixedCount del Experimento 1.
+
+![Speedup vs hilos](resultados/graficas/speedup_vs_hilos.png)
+Figura: Speedup medido para cada cantidad de hilos del Experimento 2.
+
+![Speedup vs workers](resultados/graficas/speedup_vs_workers.png)
+Figura: Speedup relativo medido frente al número de workers, junto con la recta ideal.
 
 ### Cuestionario
 
@@ -150,6 +192,8 @@ Las respuestas del cuestionario de análisis corresponden al informe grupal; no 
 | 14 | Claude / Copilot | Claude redactó el prompt; Copilot actualizó INFORME.md con el Experimento 1 y estas interacciones. | Copilot insertó los textos indicados. | [VERIFICAR: revisó el diff antes de hacer commit.] |
 | 15 | Claude | Pidió el procedimiento del Experimento 2 (hilos del worker). | Pasos para correr Master y un solo worker variando los hilos (1, 2, núcleos físicos, 64) con baldosas 128x128, elegidas a partir del Experimento 1, y la comprobación de que el cliente reporte 1 solo worker activo. | Ejecutó las 4 configuraciones en su equipo y tomó las capturas; los tiempos son mediciones propias. |
 | 16 | Claude / Copilot | Claude redactó el prompt; Copilot actualizó INFORME.md con el Experimento 2, secciones pendientes y corrección de rutas de imágenes. | Copilot insertó los textos indicados y corrigió links. | [VERIFICAR: revisó el diff antes del commit.] |
+| 17 | Claude | Pidió el procedimiento del Experimento 3 (p = 1, 2 y 4 workers) y qué debía correr la Persona A en cada momento; pegó el error de Gradle `NumberFormatException: For input string: "H"`. | Pasos de cada corrida, con dos workers por equipo para p = 4, la comprobación del número de workers activos y la explicación de que `H` era un marcador que debía reemplazarse por el número de hilos. | Ejecutó las tres corridas con su compañera y tomó las capturas; los tiempos son mediciones propias. |
+| 18 | Claude / Copilot | Claude redactó el prompt; Copilot actualizó INFORME.md (Experimentos 2 y 3, cálculo de Amdahl) y generó las gráficas con un script de matplotlib. | Copilot calculó S, E y la fracción secuencial a partir de los tiempos medidos y generó las figuras. | [VERIFICAR: recalculó al menos un valor a mano y revisó el diff antes del commit.] |
 
 ### 3. Código incorporado y justificación crítica
 
